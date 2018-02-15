@@ -1,5 +1,6 @@
 package edu.cnm.deepdive.life;
 
+import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -10,7 +11,6 @@ import edu.cnm.deepdive.life.ca.Model;
 
 public class MainActivity extends AppCompatActivity {
 
-  final private Object lock = new Object();
   private Model model;
   private boolean running = false;
   private Runner runner = null;
@@ -75,10 +75,20 @@ public class MainActivity extends AppCompatActivity {
     return true;
   }
 
-  private void updateView(byte[][] terrain, int generation) {
+  private void updateView(byte[][] terrain, final int generation) {
     terrainView.setTerrain(terrain);
-    terrainView.invalidate();
-    generationCounter.setText(String.format(generationFormat, generation));
+    if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
+      terrainView.invalidate();
+      generationCounter.setText(String.format(generationFormat, generation));
+    } else {
+      terrainView.postInvalidate();
+      runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+          generationCounter.setText(String.format(generationFormat, generation));
+        }
+      });
+    }
   }
 
   private class Runner extends Thread {
@@ -86,25 +96,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void run() {
       while (running) {
-        synchronized (lock) {
           model.advance();
           if (!terrainView.isUpdatePending()) {
             update();
-          }
         }
       }
       update();
     }
 
     private void update() {
-      final byte[][] terrain = model.getTerrain();
-      final int generation = model.getGeneration();
-      runOnUiThread(new Runnable() {
-        @Override
-        public void run() {
-          updateView(terrain, generation);
-        }
-      });
+
+      byte[][] terrain = model.getTerrain();
+      int generation = model.getGeneration();
+      updateView(terrain, generation);
+
     }
   }
 

@@ -15,7 +15,7 @@ public class TerrainView extends View {
   private boolean updatePending = false;
 
   {
-    paint.setColor(Color.CYAN);
+    paint.setColor(Color.parseColor("#FFB4080B"));
     setWillNotDraw(false);
   }
 
